@@ -221,4 +221,6 @@ Si el puerto COM no aparece, instalar el driver USB correspondiente a la placa.
 
 ## Licencia
 
-Definí una licencia antes de publicar si querés que otras personas puedan reutilizar o modificar el proyecto formalmente. Para proyectos educativos, MIT suele ser una opción simple.
+Este proyecto se distribuye bajo licencia MIT.
+
+Puede utilizarse, modificarse y compartirse libremente con fines educativos, manteniendo el aviso de autoría y la licencia original. Ver [LICENSE](LICENSE).

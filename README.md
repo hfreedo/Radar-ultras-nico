@@ -200,24 +200,6 @@ http://127.0.0.1:8765
 Es normal en ejecutables descargados desde Internet que no están firmados digitalmente.  
 Si el archivo viene del release oficial del proyecto, se puede permitir la ejecución.
 
-## Notas Para Publicar En GitHub Releases
-
-Assets recomendados del release:
-
-```text
-RadarWebPortable.zip
-Arduino IDE Legacy installer, opcional
-Driver CH340/CH341, opcional
-Driver CP210x, opcional
-```
-
-Texto breve sugerido para el release:
-
-```text
-Versión portable de la interfaz web del radar ultrasónico.
-No requiere instalar Python. Incluye ejecutable, firmware Arduino y documentación básica.
-Si el puerto COM no aparece, instalar el driver USB correspondiente a la placa.
-```
 
 ## Licencia
 

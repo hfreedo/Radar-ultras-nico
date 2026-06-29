@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RADAR ULTRASÓNICO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Oswald:wght@500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #04090E;
+  --panel:    #091018;
+  --card:     #0C1520;
+  --card-alt: #101A28;
+  --input:    #0E1825;
+  --border:   #00FF8820;
+  --text:     #E4E8E3;
+  --dim:      #9EAAA5;
+  --green:    #00FF88;
+  --green-dim:#00FF8844;
+  --green-glow: #00FF8866;
+  --ghov:     #33FFAA;
+  --red:      #FF4655;
+  --red-dim:  #FF465544;
+  --red-glow: #FF465566;
+  --font:     'Rajdhani', 'Segoe UI', system-ui, sans-serif;
+  --title:    'Oswald', 'Rajdhani', sans-serif;
+  --mono:     'JetBrains Mono', 'Cascadia Code', monospace;
+}
+
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 15px; overflow: hidden; }
+
+/* ═══════════════════════════════════════════════
+   LAYOUT
+   ═══════════════════════════════════════════════ */
+.app { display: flex; height: 100vh; }
+
+.radar-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+.radar-area header {
+  background: var(--panel); display: flex; align-items: center;
+  justify-content: space-between; flex-shrink: 0;
+  height: 98px; padding: 0 32px;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+.radar-area header::after {
+  content: ""; position: absolute; bottom: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--green-dim), transparent 20%, transparent 80%, var(--green-dim));
+}
+
+.hdr-left { display: flex; flex-direction: column; gap: 1px; }
+.hdr-right { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+
+.sys-tag {
+  font-family: var(--mono); font-size: 10px; font-weight: 600;
+  color: rgba(0, 255, 136, 0.62); letter-spacing: 1.2px; text-transform: uppercase;
+}
+.sys-tag.red { color: var(--red-dim); }
+
+.radar-area header h1 {
+  font-family: var(--title); font-size: 50px; font-weight: 800;
+  color: var(--text); letter-spacing: 4.5px; text-transform: uppercase;
+  text-shadow: 0 0 20px rgba(0, 255, 136, 0.28);
+}
+.radar-area header h1 strong { color: var(--green); font-weight: 800; }
+
+.fps {
+  font-family: var(--mono); font-size: 14px; font-weight: 700;
+  color: var(--green); font-variant-numeric: tabular-nums;
+}
+
+#radarCanvas { flex: 1; display: block; cursor: crosshair; }
+
+/* ═══════════════════════════════════════════════
+   PANEL
+   ═══════════════════════════════════════════════ */
+.panel {
+  width: 340px; background: var(--panel); flex-shrink: 0;
+  padding: 18px 16px; display: flex; flex-direction: column;
+  border-left: 1px solid var(--border);
+  overflow-y: auto; overflow-x: hidden;
+}
+
+.panel-header {
+  padding: 0 4px 12px; display: flex; flex-direction: column; gap: 2px;
+}
+.panel-header h2 {
+  font-family: var(--title); font-size: 18px; font-weight: 700;
+  color: var(--green); letter-spacing: 3px; text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════════════════
+   CARD
+   ═══════════════════════════════════════════════ */
+.card {
+  background: var(--card); padding: 16px 16px 18px;
+  display: flex; flex-direction: column; gap: 10px;
+  border: 1px solid var(--border);
+  border-top: 2px solid var(--green-dim);
+  position: relative;
+}
+.card + .card { margin-top: 8px; }
+.card::before {
+  content: ""; position: absolute;
+  top: -2px; left: -1px; width: 14px; height: 14px;
+  border-top: 2px solid var(--green); border-left: 2px solid var(--green);
+}
+.card::after {
+  content: ""; position: absolute;
+  bottom: -1px; right: -1px; width: 14px; height: 14px;
+  border-bottom: 2px solid var(--green-dim); border-right: 2px solid var(--green-dim);
+}
+
+.card-tag {
+  font-family: var(--mono); font-size: 9px; font-weight: 600;
+  color: rgba(0, 255, 136, 0.62); letter-spacing: 1.2px; text-transform: uppercase;
+}
+
+.card-title {
+  font-family: var(--title); font-size: 14px; font-weight: 700;
+  color: var(--green); letter-spacing: 2px; text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════════════════
+   FORM ELEMENTS
+   ═══════════════════════════════════════════════ */
+select, button {
+  font-family: var(--font); font-size: 15px; font-weight: 600;
+  background: var(--input); color: var(--text);
+  border: 1px solid var(--border); border-radius: 0;
+  padding: 10px 12px; outline: none; cursor: pointer;
+  letter-spacing: 1px; text-transform: uppercase;
+  transition: border-color .2s, background .2s, box-shadow .2s;
+}
+select:hover, button:hover {
+  border-color: var(--green); background: var(--card-alt);
+  box-shadow: 0 0 8px #00FF8818;
+}
+select:focus { border-color: var(--green); box-shadow: 0 0 0 1px var(--green-dim); }
+select:disabled { opacity: .35; cursor: default; }
+select:disabled:hover { border-color: var(--border); background: var(--input); box-shadow: none; }
+select option { background: var(--input); color: var(--text); padding: 4px; }
+
+.port-row { display: flex; gap: 6px; min-width: 0; }
+.port-row select { flex: 1; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+
+button {
+  font-weight: 700; letter-spacing: 1.5px; padding: 12px 20px; user-select: none;
+}
+button:active { transform: scale(.97); }
+
+.btn-connect {
+  background: var(--green); color: var(--bg); border: none;
+  font-family: var(--title); font-size: 17px; font-weight: 700;
+  letter-spacing: 2px; padding: 14px 20px;
+  transition: background .2s, box-shadow .2s, opacity .2s;
+  box-shadow: 0 0 16px #00FF8833;
+}
+.btn-connect:hover { background: var(--ghov); box-shadow: 0 0 24px #00FF8844; }
+.btn-connect.disconnect {
+  background: transparent; color: var(--red); border: 1.5px solid var(--red);
+  box-shadow: 0 0 12px #FF465522;
+}
+.btn-connect.disconnect:hover {
+  background: #FF465508; border-color: #FF6677; color: #FF6677;
+  box-shadow: 0 0 16px #FF465533;
+}
+.btn-connect:disabled { opacity: .35; cursor: default; box-shadow: none; }
+
+.btn-refresh {
+  width: 44px; padding: 0; font-size: 16px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono);
+}
+.btn-refresh:disabled { opacity: .35; cursor: default; }
+.btn-refresh:disabled:hover { border-color: var(--border); background: var(--input); box-shadow: none; }
+
+/* ═══════════════════════════════════════════════
+   STATUS TAG
+   ═══════════════════════════════════════════════ */
+.status-tag {
+  display: block; text-align: center; padding: 8px 0;
+  font-family: var(--mono); font-size: 12px; font-weight: 800;
+  letter-spacing: 2px; text-transform: uppercase;
+  border: 1px solid var(--border);
+}
+.status-tag.off {
+  background: #0C0608; color: var(--red); border-color: var(--red-dim);
+  text-shadow: 0 0 8px var(--red-glow);
+}
+.status-tag.on {
+  background: #040C08; color: var(--green); border-color: var(--green-dim);
+  text-shadow: 0 0 8px var(--green-glow);
+}
+
+/* ═══════════════════════════════════════════════
+   SLIDER
+   ═══════════════════════════════════════════════ */
+.slider-group { display: flex; flex-direction: column; gap: 1px; }
+.slider-group .row { display: flex; justify-content: space-between; align-items: center; }
+.slider-group .row label {
+  font-family: var(--font); font-size: 12px; font-weight: 700;
+  color: var(--dim); letter-spacing: 1.2px; text-transform: uppercase;
+}
+.slider-group .row .val {
+  color: var(--green); font-weight: 800; font-size: 15px;
+  font-family: var(--mono); text-shadow: 0 0 6px var(--green-dim);
+}
+
+input[type="range"] {
+  -webkit-appearance: none; appearance: none; width: 100%; height: 3px;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 0;
+  outline: none; cursor: pointer; margin: 6px 0;
+}
+input[type="range"]::-webkit-slider-runnable-track { height: 3px; }
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 12px; height: 12px; background: var(--green);
+  cursor: pointer; margin-top: -5px; border: none; border-radius: 0;
+  transform: rotate(45deg);
+  transition: box-shadow .2s, background .2s;
+  box-shadow: 0 0 8px var(--green-glow);
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  background: var(--ghov); box-shadow: 0 0 14px var(--green-glow);
+}
+
+.slider-labels {
+  display: flex; justify-content: space-between; font-size: 10px;
+  color: var(--dim); padding: 0 1px; letter-spacing: 1px;
+  font-family: var(--mono); text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════════════════
+   CHECKBOX
+   ═══════════════════════════════════════════════ */
+label.chk {
+  display: flex; align-items: center; gap: 10px; cursor: pointer;
+  font-family: var(--font); font-size: 13px; font-weight: 700;
+  color: var(--text); padding: 5px 0; letter-spacing: 1px;
+  text-transform: uppercase; transition: color .2s;
+}
+label.chk:hover { color: var(--text); }
+label.chk input { display: none; }
+label.chk .box {
+  width: 16px; height: 16px; border: 1.5px solid var(--border);
+  background: var(--input); flex-shrink: 0; display: flex;
+  align-items: center; justify-content: center;
+  transition: border-color .2s, background .2s, box-shadow .2s;
+}
+label.chk:hover .box { border-color: var(--green); box-shadow: 0 0 6px #00FF8818; }
+label.chk .box::after {
+  content: ""; width: 8px; height: 8px;
+  background: var(--green); opacity: 0; transition: opacity .2s;
+}
+label.chk input:checked + .box {
+  border-color: var(--green); background: #00FF8810;
+  box-shadow: 0 0 8px #00FF8822;
+}
+label.chk input:checked + .box::after { opacity: 1; }
+
+/* ═══════════════════════════════════════════════
+   STATUS LINE
+   ═══════════════════════════════════════════════ */
+.status-line {
+  text-align: center; color: var(--dim); font-size: 12px; padding: 10px 0;
+  letter-spacing: 1.4px; font-family: var(--mono); text-transform: uppercase;
+  border-top: 1px solid var(--border);
+}
+
+/* ═══════════════════════════════════════════════
+   SCROLLBAR
+   ═══════════════════════════════════════════════ */
+.panel::-webkit-scrollbar { width: 3px; }
+.panel::-webkit-scrollbar-track { background: transparent; }
+.panel::-webkit-scrollbar-thumb { background: var(--green-dim); }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="radar-area">
+    <header>
+      <div class="hdr-left">
+        <span class="sys-tag">// TACTICAL_RDR v2.6.1</span>
+        <h1><strong>RADAR</strong> ULTRASÓNICO</h1>
+      </div>
+      <div class="hdr-right">
+        <span class="sys-tag">// FRAME_RATE</span>
+        <span class="fps" id="fpsDisplay">-- FPS</span>
+      </div>
+    </header>
+    <canvas id="radarCanvas"></canvas>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <span class="sys-tag">// CONTROL_PANEL</span>
+      <h2>CONTROLES</h2>
+    </div>
+
+    <div class="card">
+      <span class="card-tag">// COM_LINK</span>
+      <div class="card-title">CONEXIÓN</div>
+      <div class="port-row">
+        <select id="portSelect"></select>
+        <button class="btn-refresh" id="refreshBtn" title="Actualizar puertos">R</button>
+      </div>
+      <button class="btn-connect" id="connectBtn">CONECTAR</button>
+      <div class="status-tag off" id="statusTag">DESCONECTADO</div>
+    </div>
+
+    <div class="card">
+      <span class="card-tag">// RADAR_CONFIG</span>
+      <div class="card-title">PARÁMETROS</div>
+      <div class="slider-group">
+        <div class="row"><label>VELOCIDAD DE BARRIDO</label><span class="val" id="speedVal">30 ms</span></div>
+        <input type="range" id="speedSlider" min="5" max="200" value="30">
+        <div class="slider-labels"><span>RÁPIDO</span><span>LENTO</span></div>
+      </div>
+      <div class="slider-group">
+        <div class="row"><label>UMBRAL DE ALERTA</label><span class="val" id="threshVal">5 cm</span></div>
+        <input type="range" id="threshSlider" min="2" max="100" value="5">
+      </div>
+      <div class="slider-group">
+        <div class="row"><label>ESCALA MÁXIMA</label><span class="val" id="scaleVal">100 cm</span></div>
+        <input type="range" id="scaleSlider" min="50" max="400" value="100" step="50">
+        <div class="slider-labels"><span>CERCA</span><span>LEJOS</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <span class="card-tag">// SYS_OPTIONS</span>
+      <div class="card-title">OPCIONES</div>
+      <label class="chk"><input type="checkbox" id="muteChk"><span class="box"></span>SILENCIAR BUZZER</label>
+      <label class="chk"><input type="checkbox" id="pauseChk"><span class="box"></span>PAUSAR RADAR</label>
+    </div>
+
+    <div style="flex:1"></div>
+    <div class="status-line" id="statusLine">ESTADO: En espera</div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById("radarCanvas");
+const ctx = canvas.getContext("2d");
+let W = 0, H = 0, cx = 0, cy = 0, R = 0;
+let lastW = -1, lastH = -1;
+
+function fillBg() {
+  const bg = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 1.3);
+  bg.addColorStop(0, "#0A1520");
+  bg.addColorStop(1, "#04090E");
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+}
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const hdr = canvas.parentElement.querySelector("header");
+  const hh = hdr ? hdr.getBoundingClientRect().height : 0;
+  const w = Math.floor(rect.width);
+  const h = Math.floor(rect.height - hh);
+  if (w !== lastW || h !== lastH) {
+    canvas.width = w; canvas.height = h;
+    canvas.style.width = w + "px"; canvas.style.height = h + "px";
+    lastW = w; lastH = h;
+    W = w; H = h;
+    cx = W / 2; cy = H * 0.82;
+    R = Math.min(W, H) * 0.70;
+    fillBg();
+  }
+  W = canvas.width; H = canvas.height;
+  cx = W / 2; cy = H * 0.82;
+  R = Math.min(W, H) * 0.70;
+}
+
+let resizePending = true;
+window.addEventListener("resize", () => { resizePending = true; });
+
+let angle = 0, distance = 200, maxDist = 100, connected = false, serialOk = false;
+const fpsHistory = [];
+let lastFrame = performance.now();
+
+const sel = document.getElementById("portSelect");
+async function fetchPorts() {
+  try {
+    const r = await fetch("/api/ports");
+    const pp = await r.json();
+    sel.innerHTML = "";
+    if (pp.length === 0) {
+      sel.innerHTML = '<option value="">NO HAY PUERTOS</option>';
+    } else {
+      pp.forEach(p => {
+        const o = document.createElement("option");
+        o.value = p.port;
+        const label = p.desc !== p.port ? p.port + " " + p.desc : p.port;
+        o.textContent = label.length > 26 ? label.slice(0, 23) + "..." : label;
+        sel.appendChild(o);
+      });
+    }
+  } catch (_) { sel.innerHTML = '<option value="">ERROR</option>'; }
+}
+document.getElementById("refreshBtn").onclick = fetchPorts;
+fetchPorts();
+
+const connectBtn = document.getElementById("connectBtn");
+const statusTag = document.getElementById("statusTag");
+const statusLine = document.getElementById("statusLine");
+const portSelect = document.getElementById("portSelect");
+const refreshBtn = document.getElementById("refreshBtn");
+
+connectBtn.onclick = async () => {
+  if (!connected) {
+    const port = portSelect.value;
+    if (!port) return;
+    connectBtn.disabled = true;
+    connectBtn.textContent = "CONECTANDO...";
+    try {
+      const r = await fetch("/api/serial", {
+        method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({action: "open", port})
+      });
+      const data = await r.json();
+      if (data.ok) {
+        connected = true; serialOk = false;
+        connectBtn.textContent = "DESCONECTAR";
+        connectBtn.className = "btn-connect disconnect";
+        connectBtn.disabled = false;
+        statusTag.textContent = "CONECTADO";
+        statusTag.className = "status-tag on";
+        statusLine.textContent = "ESTADO: Conectando...";
+        portSelect.disabled = true;
+        refreshBtn.disabled = true;
+      } else {
+        connectBtn.textContent = "CONECTAR"; connectBtn.className = "btn-connect"; connectBtn.disabled = false;
+      }
+    } catch (_) {
+      connectBtn.textContent = "CONECTAR"; connectBtn.className = "btn-connect"; connectBtn.disabled = false;
+    }
+  } else {
+    try { await fetch("/api/serial", { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({action: "close"}) }); } catch(_) {}
+    connected = false; serialOk = false;
+    connectBtn.textContent = "CONECTAR"; connectBtn.className = "btn-connect"; connectBtn.disabled = false;
+    statusTag.textContent = "DESCONECTADO"; statusTag.className = "status-tag off";
+    statusLine.textContent = "ESTADO: En espera";
+    portSelect.disabled = false; refreshBtn.disabled = false;
+    angle = 0; distance = 200;
+  }
+};
+
+async function sendCmd(type, value) {
+  if (!connected) return;
+  try { await fetch("/api/command", { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({type, value}) }); } catch(_) {}
+}
+
+document.getElementById("speedSlider").oninput = function() {
+  document.getElementById("speedVal").textContent = this.value + " ms";
+  sendCmd("VEL", this.value);
+};
+document.getElementById("threshSlider").oninput = function() {
+  document.getElementById("threshVal").textContent = this.value + " cm";
+  sendCmd("THR", this.value);
+};
+document.getElementById("scaleSlider").oninput = function() {
+  maxDist = parseInt(this.value);
+  document.getElementById("scaleVal").textContent = maxDist + " cm";
+  fillBg();
+};
+document.getElementById("muteChk").onchange = function() { sendCmd("MUTE", this.checked ? 1 : 0); };
+document.getElementById("pauseChk").onchange = function() { sendCmd("PAUSE", this.checked ? 1 : 0); };
+
+const evtSource = new EventSource("/stream");
+evtSource.onmessage = (e) => {
+  try {
+    const d = JSON.parse(e.data);
+    angle = d.angle; distance = d.distance;
+    if (!serialOk && connected) { serialOk = true; statusLine.textContent = "ESTADO: Activo"; }
+  } catch(_) {}
+};
+evtSource.onerror = () => { if (connected) { serialOk = false; statusLine.textContent = "ESTADO: Sin datos"; } };
+
+// ─── RADAR ──────────────────────────────────────────────
+function drawRadar() {
+  const { width: cw, height: ch } = canvas;
+  if (cw === 0 || ch === 0) return;
+
+  ctx.fillStyle = "rgba(4, 9, 14, 0.012)";
+  ctx.fillRect(0, 0, cw, ch);
+
+  const ranges = [0.25, 0.50, 0.75, 1.0];
+  ctx.strokeStyle = "rgba(0, 255, 136, 0.12)";
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 6]);
+  for (const r of ranges) { ctx.beginPath(); ctx.arc(cx, cy, R * r, Math.PI, 2 * Math.PI); ctx.stroke(); }
+  ctx.setLineDash([]);
+
+  ctx.strokeStyle = "rgba(0, 255, 136, 0.06)";
+  ctx.beginPath(); ctx.moveTo(cx - R, cy); ctx.lineTo(cx + R, cy); ctx.stroke();
+
+  const degs = [30, 60, 90, 120, 150];
+  for (const a of degs) {
+    const rad = a * Math.PI / 180;
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx - R * Math.cos(rad), cy - R * Math.sin(rad)); ctx.stroke();
+  }
+
+  ctx.fillStyle = "rgba(180, 255, 200, 0.62)";
+  ctx.font = "13px 'JetBrains Mono', monospace";
+  ctx.textAlign = "left"; ctx.textBaseline = "bottom";
+  const labels = ranges.map(r => Math.round(maxDist * r) + "cm");
+  for (let i = 0; i < 4; i++) {
+    let labelX = cx + R * ranges[i] + 6;
+    const labelWidth = ctx.measureText(labels[i]).width;
+    if (labelX + labelWidth > cw - 8) labelX = cw - labelWidth - 8;
+    ctx.fillText(labels[i], labelX, cy - 4);
+  }
+
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  for (const a of degs) {
+    const rad = a * Math.PI / 180;
+    const lx = cx - (R + 22) * Math.cos(rad);
+    const ly = cy - (R + 22) * Math.sin(rad);
+    ctx.save(); ctx.translate(lx, ly); ctx.rotate(-(90 - a) * Math.PI / 180);
+    ctx.fillText(a + "\u00b0", 0, 0); ctx.restore();
+  }
+
+  const sweepRad = angle * Math.PI / 180;
+  const sx = cx - R * Math.cos(sweepRad);
+  const sy = cy - R * Math.sin(sweepRad);
+
+  ctx.save();
+  ctx.shadowColor = "#00FF88"; ctx.shadowBlur = 12;
+  ctx.strokeStyle = "rgba(0, 255, 136, 0.10)";
+  ctx.lineWidth = 6; ctx.lineCap = "round";
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(sx, sy); ctx.stroke();
+  ctx.restore();
+
+  ctx.strokeStyle = "#B4FFC8";
+  ctx.lineWidth = 1.5; ctx.lineCap = "round";
+  ctx.shadowColor = "#00FF88"; ctx.shadowBlur = 4;
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(sx, sy); ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  if (distance < maxDist) {
+    const distPx = (distance / maxDist) * R;
+    const ox = cx - distPx * Math.cos(sweepRad);
+    const oy = cy - distPx * Math.sin(sweepRad);
+    const ex = cx - R * Math.cos(sweepRad);
+    const ey = cy - R * Math.sin(sweepRad);
+
+    ctx.save();
+    ctx.shadowColor = "#FF4655"; ctx.shadowBlur = 10;
+    ctx.strokeStyle = "#FF4655";
+    ctx.lineWidth = 2.5; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ex, ey); ctx.stroke();
+    ctx.restore();
+  }
+}
+
+const fpsEl = document.getElementById("fpsDisplay");
+function updateFps() {
+  const now = performance.now(); const dt = now - lastFrame; lastFrame = now;
+  if (dt > 0 && dt < 100) {
+    fpsHistory.push(1000 / dt);
+    if (fpsHistory.length > 30) fpsHistory.shift();
+    fpsEl.textContent = Math.round(fpsHistory.reduce((a, b) => a + b, 0) / fpsHistory.length) + " FPS";
+  }
+}
+
+function loop() {
+  if (resizePending) { resizeCanvas(); resizePending = false; }
+  drawRadar(); updateFps();
+  requestAnimationFrame(loop);
+}
+resizeCanvas();
+loop();
+</script>
+</body>
+</html>

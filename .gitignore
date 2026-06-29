@@ -1,8 +1,9 @@
 __pycache__/
-*.pyc
-build/
+*.py[cod]
+.venv/
 dist/
+build/
+release/
 *.spec
 *.log
 radar-*-check.png
-RadarWebPortable/

@@ -1,43 +1,38 @@
 # Radar Ultrasónico Web
 
-Interfaz web portable para un radar ultrasónico con Arduino, sensor HC-SR04, servomotor y buzzer.  
+[![Plataforma](https://img.shields.io/badge/plataforma-Windows-2563eb)](https://github.com/hfreedo/Radar-ultrasonico-arduino)
+[![Arduino](https://img.shields.io/badge/hardware-Arduino%20UNO-00979d)](https://github.com/hfreedo/Radar-ultrasonico-arduino)
+[![Release](https://img.shields.io/github/v/release/hfreedo/Radar-ultrasonico-arduino?label=versi%C3%B3n&color=51e898)](https://github.com/hfreedo/Radar-ultrasonico-arduino/releases)
+
+Interfaz web portable para un radar ultrasónico con Arduino, sensor HC-SR04, servomotor y buzzer.
 La aplicación lee datos por puerto serie, dibuja el barrido del radar en el navegador y permite controlar velocidad, umbral de alerta, pausa y silencio del buzzer.
 
 ![Radar ultrasónico web](docs/radar-preview.png)
 
-## Descarga Recomendada
+## Descarga portable
 
-Para usar el proyecto en otra PC, descargá el archivo del release:
+La opción recomendada para otra PC es descargar [`RadarWebPortable.zip`](https://github.com/hfreedo/Radar-ultrasonico-arduino/releases/latest/download/RadarWebPortable.zip).
 
-```text
-RadarWebPortable.zip
+Después de descomprimirlo, ejecutar:
+
 ```
-
-Después descomprimilo y ejecutá:
-
-```text
 RadarUltrasonicoWeb.exe
 ```
 
-La aplicación abre una interfaz local en el navegador:
+No requiere instalar Python. Solo necesita Windows, un navegador moderno y el driver USB de la placa Arduino.
 
-```text
-http://127.0.0.1:8765
-```
+La aplicación abre automáticamente `http://127.0.0.1:8765`.
 
-## ¿Hace Falta Instalar Python?
+## Funciones
 
-No.  
-La versión portable incluida en `RadarWebPortable.zip` ya trae Python y `pyserial` empaquetados dentro del ejecutable generado con PyInstaller.
+- Barrido de radar animado en tiempo real con efecto de estela.
+- Detección visual de objetos con indicador de ángulo y distancia.
+- Control de velocidad de barrido (5 a 200 ms por paso).
+- Umbral de alerta configurable (2 a 100 cm) con activación del buzzer.
+- Silencio y pausa del barrido desde la interfaz.
+- Selección y conexión del puerto COM.
 
-En una PC destino solo necesitás:
-
-- Windows.
-- Un navegador web moderno, por ejemplo Microsoft Edge, Chrome o Firefox.
-- Driver USB de la placa Arduino o conversor USB-Serie.
-- El Arduino cargado con el firmware correcto.
-
-## Hardware Necesario
+## Hardware necesario
 
 - Arduino UNO, Nano o compatible.
 - Sensor ultrasónico HC-SR04.
@@ -46,82 +41,65 @@ En una PC destino solo necesitás:
 - Cable USB de datos.
 - Jumpers.
 
-Conexiones usadas por el firmware:
+## Conexiones
 
-```text
-HC-SR04 TRIG  -> pin 10
-HC-SR04 ECHO  -> pin 11
-Servo señal   -> pin 9
-Buzzer        -> pin 6
-Baudrate      -> 9600
+| Componente     | Arduino UNO |
+|----------------|-------------|
+| HC-SR04 TRIG   | D10         |
+| HC-SR04 ECHO   | D11         |
+| Servo señal    | D9          |
+| Buzzer         | D6          |
+
+Comunicación serial a `9600` baudios.
+
+## Preparar el Arduino
+
+1. Abrir [`arduino/radar/Proyecto_RADAR_ultras_nico.ino`](arduino/radar/Proyecto_RADAR_ultras_nico.ino).
+2. Seleccionar Arduino UNO y el puerto correspondiente.
+3. Cargar el programa.
+4. Cerrar el Monitor Serie antes de usar la aplicación.
+
+El firmware barre de 0° a 180° con el servomotor, mide la distancia con el HC-SR04 y envía `angulo,distancia` por serial. Acepta comandos `VEL:<ms>`, `THR:<cm>`, `MUTE:<0|1>` y `PAUSE:<0|1>` desde la interfaz.
+
+## Ejecutar desde el código fuente
+
+```bat
+python -m pip install -r requirements.txt
+python server.py
 ```
 
-## Uso Rápido
+O simplemente:
 
-1. Cargá el firmware en el Arduino.
-2. Conectá el Arduino por USB.
-3. Ejecutá `RadarUltrasonicoWeb.exe`.
-4. Esperá que se abra el navegador.
-5. Elegí el puerto COM desde la interfaz.
-6. Presioná `CONECTAR`.
-
-Si el navegador no se abre automáticamente, entrá manualmente a:
-
-```text
-http://127.0.0.1:8765
+```bat
+run.bat
 ```
 
-## Firmware
+La aplicación abre automáticamente `http://127.0.0.1:8765`.
 
-El firmware recomendado está en:
+## Generar nuevamente el paquete
 
-```text
-RadarWebPortable/firmware/Proyecto_RADAR_ultras_nico.ino
+En Windows, ejecutar:
+
+```bat
+tools\build_portable.bat
 ```
 
-También está en el código fuente:
+El proceso instala las herramientas de construcción, crea `dist/RadarUltrasonicoWeb.exe` y organiza el paquete portable.
 
-```text
-Radar con Python/Proyecto_RADAR_ultras_nico/Proyecto_RADAR_ultras_nico.ino
+## Estructura principal
+
+```
+arduino/radar/               Firmware del Arduino
+static/                      Interfaz HTML del radar
+docs/                        Capturas y documentación
+tools/                       Scripts de construcción y GUI alternativa
+server.py                    Servidor local y conexión serial
+RadarWebPortable.zip         Paquete listo para usar
 ```
 
-El Arduino envía datos por serial en este formato:
+## Estructura del paquete portable
 
-```text
-angulo,distancia
 ```
-
-Y acepta estos comandos desde la interfaz:
-
-```text
-VEL:<ms>
-THR:<cm>
-MUTE:<0|1>
-PAUSE:<0|1>
-```
-
-## Drivers USB
-
-Si el puerto COM no aparece, probablemente falte el driver USB de la placa.
-
-Casos comunes:
-
-- Placas compatibles con chip CH340/CH341: instalar driver CH340.
-- Placas con chip CP210x: instalar driver Silicon Labs CP210x.
-- Arduino original: normalmente Windows lo reconoce, pero puede requerir Arduino IDE o driver oficial.
-
-Podés incluir en el release una carpeta opcional:
-
-```text
-drivers/
-installers/
-```
-
-Una buena opción para entornos escolares o PCs sin preparación previa es incluir el instalador de Arduino IDE Legacy, porque también ayuda a instalar drivers y permite cargar el firmware.
-
-## Estructura Del Paquete Portable
-
-```text
 RadarWebPortable/
   LEEME_PRIMERO.md
   RadarUltrasonicoWeb.exe
@@ -135,50 +113,14 @@ RadarWebPortable/
     EMPAQUETADO.md
 ```
 
-## Ejecutar Desde Código Fuente
-
-Si querés correr el proyecto sin el `.exe`, instalá Python y las dependencias:
-
-```bat
-python -m pip install -r requirements-web.txt
-tools\run_web_source.bat
-```
-
-O manualmente:
-
-```bat
-python "Radar con Python\server.py"
-```
-
-## Compilar El Ejecutable
-
-Desde la raíz del proyecto:
-
-```bat
-tools\build_web_exe.bat
-```
-
-El ejecutable se genera en:
-
-```text
-dist/RadarUltrasonicoWeb.exe
-```
-
-Después podés crear o actualizar el paquete:
-
-```text
-RadarWebPortable.zip
-```
-
-## Solución De Problemas
+## Solución de problemas
 
 ### No aparece ningún puerto COM
 
 - Revisá que el cable USB sea de datos.
 - Probá otro puerto USB.
-- Abrí el Administrador de dispositivos.
 - Instalá el driver CH340/CH341 o CP210x según tu placa.
-- Cerrá Arduino IDE u otros monitores serie antes de conectar desde la app.
+- Cerrá Arduino IDE u otros monitores serie antes de conectar.
 
 ### La app abre pero no recibe datos
 
@@ -189,17 +131,11 @@ RadarWebPortable.zip
 
 ### El navegador no abre
 
-Entrá manualmente a:
-
-```text
-http://127.0.0.1:8765
-```
+Entrá manualmente a `http://127.0.0.1:8765`.
 
 ### Windows muestra advertencia de seguridad
 
-Es normal en ejecutables descargados desde Internet que no están firmados digitalmente.  
-Si el archivo viene del release oficial del proyecto, se puede permitir la ejecución.
-
+Es normal en ejecutables no firmados. Si el archivo viene del release oficial, se puede permitir la ejecución.
 
 ## Licencia
 
